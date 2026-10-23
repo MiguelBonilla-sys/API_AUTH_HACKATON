@@ -64,7 +64,9 @@ def tracked_files() -> list[str]:
 
 def test_no_code_assigns_a_default_jwt_secret():
     pattern = re.compile(r"""os\.environ\[\s*["']JWT_SECRET_KEY["']\s*\]\s*=|os\.environ\.setdefault\(\s*["']JWT_SECRET_KEY""")
-    offenders = [f for f in tracked_files() if f.endswith(".py") and pattern.search((ROOT / f).read_text(encoding="utf-8"))]
+    # tests/ sets a throwaway key on purpose; application code must not.
+    app_code = [f for f in tracked_files() if f.endswith(".py") and not f.startswith("tests/")]
+    offenders = [f for f in app_code if pattern.search((ROOT / f).read_text(encoding="utf-8"))]
     assert offenders == []
 
 
