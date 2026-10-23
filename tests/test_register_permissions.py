@@ -115,3 +115,25 @@ def test_invalid_token_is_rejected():
         "/auth/register", json=account(is_superuser=True), headers={"Authorization": "Bearer not-a-token"}
     )
     assert response.status_code == 401
+
+
+def test_login_token_is_accepted_by_protected_endpoints():
+    """Tokens from /auth/login must verify (PyJWT 2.10 requires a string `sub`)."""
+    from src.auth.jwt_utils import get_password_hash
+
+    password = secrets.token_urlsafe(12)
+    user = admin_user()
+    user.hashed_password = get_password_hash(password)
+    user.created_at = user.updated_at = datetime.now(timezone.utc)
+
+    class LoginSession(FakeSession):
+        async def execute(self, statement):
+            return FakeResult(user)
+
+    client = client_with(LoginSession())
+    tokens = client.post("/auth/login", json={"username": "a", "password": password})
+    assert tokens.status_code == 200, tokens.text
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {tokens.json()['access_token']}"})
+    assert me.status_code == 200, me.text
+    refreshed = client.post("/auth/refresh", params={"refresh_token": tokens.json()["refresh_token"]})
+    assert refreshed.status_code == 200, refreshed.text

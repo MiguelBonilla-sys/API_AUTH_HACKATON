@@ -109,8 +109,8 @@ async def login_user(
         )
     
     # Create tokens
-    access_token = create_access_token(data={"sub": user.id, "username": user.username})
-    refresh_token = create_refresh_token(data={"sub": user.id, "username": user.username})
+    access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
+    refresh_token = create_refresh_token(data={"sub": str(user.id), "username": user.username})
     
     return {
         "access_token": access_token,
@@ -127,9 +127,9 @@ async def refresh_token(
     """
     Refresh access token using refresh token
     """
-    # Verify refresh token
+    # Verify refresh token (`sub` is a string: PyJWT 2.10 rejects other types)
     payload = verify_token(refresh_token, token_type="refresh")
-    if payload is None:
+    if payload is None or not str(payload.get("sub", "")).isdigit():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
@@ -137,7 +137,7 @@ async def refresh_token(
         )
     
     # Get user from database
-    user_id = payload.get("sub")
+    user_id = int(payload["sub"])
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     
@@ -149,8 +149,8 @@ async def refresh_token(
         )
     
     # Create new tokens
-    new_access_token = create_access_token(data={"sub": user.id, "username": user.username})
-    new_refresh_token = create_refresh_token(data={"sub": user.id, "username": user.username})
+    new_access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
+    new_refresh_token = create_refresh_token(data={"sub": str(user.id), "username": user.username})
     
     return {
         "access_token": new_access_token,

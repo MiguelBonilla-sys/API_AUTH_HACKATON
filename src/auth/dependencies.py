@@ -33,10 +33,11 @@ async def get_current_user(
     if payload is None:
         raise credentials_exception
 
-    # Get user info from token
-    user_id: Optional[int] = payload.get("sub")
-    if user_id is None:
+    # Get user info from token (`sub` is a string: PyJWT 2.10 rejects other types)
+    subject: Optional[str] = payload.get("sub")
+    if subject is None or not subject.isdigit():
         raise credentials_exception
+    user_id = int(subject)
 
     # Get user from database
     result = await db.execute(select(User).where(User.id == user_id))
