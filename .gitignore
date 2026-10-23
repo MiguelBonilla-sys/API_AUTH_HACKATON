@@ -228,3 +228,6 @@ Desktop.ini
 
 # FastAPI specific
 .pytest_cache/
+# Generated test credentials: never commit them
+scripts/user_credentials*.json
+credentials/

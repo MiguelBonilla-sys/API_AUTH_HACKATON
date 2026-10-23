@@ -6,7 +6,19 @@ import jwt
 from passlib.context import CryptContext
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-jwt-key-here-change-this-in-production")
+# JWT_SECRET_KEY is required: without it anyone could forge tokens with a known default value.
+# Generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"
+_PLACEHOLDERS = {"your-super-secret-jwt-key-change-this-in-production", "development-secret-key-change-in-production"}
+
+
+def _load_secret_key() -> str:
+    key = os.getenv("JWT_SECRET_KEY", "")
+    if len(key) < 32 or key in _PLACEHOLDERS or key.startswith("your-super-secret"):
+        raise RuntimeError("JWT_SECRET_KEY must be set to a random value of at least 32 characters")
+    return key
+
+
+SECRET_KEY = _load_secret_key()
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7"))
