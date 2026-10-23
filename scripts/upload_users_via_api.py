@@ -1,8 +1,11 @@
 import json
 import asyncio
+import os
 import httpx
 from pathlib import Path
 from datetime import datetime
+
+from seed_passwords import seed_password
 
 API_BASE_URL = "http://127.0.0.1:8000"
 
@@ -65,13 +68,32 @@ def create_email_from_username(username: str) -> str:
     """Create an email from username"""
     return f"{username}@inventario.gov.co"
 
-async def register_user_via_api(user_data: dict) -> bool:
-    """Register a user using the API endpoint"""
+async def login_admin() -> str | None:
+    """Access token of an existing superuser; owners and roles can only be assigned by one"""
+    password = os.getenv("SEED_ADMIN_PASSWORD")
+    if not password:
+        print("❌ Define SEED_ADMIN_PASSWORD (y SEED_ADMIN_USERNAME si no es 'admin').")
+        print("   Crea el administrador antes con: python scripts/create_users.py")
+        return None
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{API_BASE_URL}/auth/login",
+            json={"username": os.getenv("SEED_ADMIN_USERNAME", "admin"), "password": password},
+            timeout=30.0
+        )
+    if response.status_code != 200:
+        print(f"❌ No se pudo iniciar sesión como administrador: HTTP {response.status_code}")
+        return None
+    return response.json()["access_token"]
+
+async def register_user_via_api(user_data: dict, token: str) -> bool | None:
+    """Register a user using the API endpoint, authenticated as a superuser"""
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
                 f"{API_BASE_URL}/auth/register",
                 json=user_data,
+                headers={"Authorization": f"Bearer {token}"},
                 timeout=30.0
             )
             
@@ -81,8 +103,8 @@ async def register_user_via_api(user_data: dict) -> bool:
             elif response.status_code == 400:
                 error_detail = response.json().get("detail", "Error desconocido")
                 if "already registered" in str(error_detail).lower():
-                    print(f"⚠️  Usuario ya existe: {user_data['username']}")
-                    return True  # Consider existing as success
+                    print(f"⚠️  Usuario ya existe: {user_data['username']} (conserva su contraseña)")
+                    return None  # Existing: not an error, but its password was not changed
                 else:
                     print(f"❌ Error registrando {user_data['username']}: {error_detail}")
                     return False
@@ -127,25 +149,16 @@ async def upload_users_to_database():
             seen.add(clean_prop)
             unique_propietarios.append(clean_prop)
     
-    print(f"\n👥 Creando {len(unique_propietarios)} usuarios únicos + 1 admin...")
+    print(f"\n👥 Creando {len(unique_propietarios)} usuarios únicos...")
     
-    # Create admin user first
-    admin_data = {
-        "email": "admin@inventario.gov.co",
-        "username": "admin",
-        "password": "admin123",
-        "full_name": "Administrador Principal",
-        "dueno_de_activo": None,
-        "is_superuser": True,
-        "is_active": True
-    }
-    
-    print(f"\n👑 Creando usuario administrador...")
-    admin_success = await register_user_via_api(admin_data)
+    token = await login_admin()
+    if token is None:
+        return False
     
     # Create regular users
     print(f"\n👤 Creando usuarios por propietario...")
     successful_users = 0
+    created = []
     failed_users = 0
     
     for dueno in unique_propietarios:
@@ -156,15 +169,18 @@ async def upload_users_to_database():
             user_data = {
                 "email": email,
                 "username": username,
-                "password": "password123",
+                "password": seed_password(),
                 "full_name": dueno,
                 "dueno_de_activo": dueno,
                 "is_superuser": False,
                 "is_active": True
             }
             
-            success = await register_user_via_api(user_data)
+            success = await register_user_via_api(user_data, token)
             if success:
+                successful_users += 1
+                created.append(user_data)
+            elif success is None:
                 successful_users += 1
             else:
                 failed_users += 1
@@ -174,16 +190,15 @@ async def upload_users_to_database():
             failed_users += 1
     
     # Summary
-    total_users = successful_users + (1 if admin_success else 0)
+    total_users = successful_users
     print(f"\n📊 Resumen de carga:")
     print(f"   ✅ Usuarios creados exitosamente: {total_users}")
     print(f"   ❌ Errores: {failed_users}")
-    print(f"   📝 Total procesados: {len(unique_propietarios) + 1}")
+    print(f"   📝 Total procesados: {len(unique_propietarios)}")
     
     if total_users > 0:
         print(f"\n🔑 Credenciales de acceso:")
-        print(f"   👑 Admin: admin@inventario.gov.co / admin123")
-        print(f"   👤 Usuarios: [username]@inventario.gov.co / password123")
+        print(f"   En {save_created_credentials(created)} (ignorado por git); no compartirlas")
         
         print(f"\n⚠️  IMPORTANTE:")
         print(f"   - Los usuarios están ahora en la base de datos")
@@ -195,6 +210,16 @@ async def upload_users_to_database():
     else:
         print(f"\n❌ No se pudieron crear usuarios. Verificar logs de errores.")
         return False
+
+def save_created_credentials(users: list) -> Path:
+    """Save the random passwords of the created users; credentials/ is git-ignored"""
+    creds_dir = Path("credentials")
+    creds_dir.mkdir(exist_ok=True)
+    path = creds_dir / f"user_credentials_upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    rows = [{"email": u["email"], "username": u["username"], "password": u["password"]} for u in users]
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(rows, f, indent=2, ensure_ascii=False)
+    return path
 
 def save_upload_log(success: bool, details: str):
     """Save upload log to file"""

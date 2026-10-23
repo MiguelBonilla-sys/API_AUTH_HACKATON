@@ -1,4 +1,4 @@
-from .dependencies import get_current_user, get_current_active_user, get_current_superuser
+from .dependencies import get_current_user, get_current_active_user, get_current_superuser, get_optional_superuser
 from .jwt_utils import (
     verify_password,
     get_password_hash,
@@ -11,6 +11,7 @@ __all__ = [
     "get_current_user",
     "get_current_active_user", 
     "get_current_superuser",
+    "get_optional_superuser",
     "verify_password",
     "get_password_hash",
     "create_access_token",

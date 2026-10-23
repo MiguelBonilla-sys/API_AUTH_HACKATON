@@ -12,6 +12,7 @@ from src.schemas.auth import TokenData
 
 # Bearer token security scheme
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
@@ -79,6 +80,20 @@ async def get_current_superuser(
             detail="Not enough permissions"
         )
     return current_user
+
+
+async def get_optional_superuser(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """
+    Superuser behind the request's bearer token, or None when there is no token
+    or it belongs to a regular user. An invalid token is still rejected.
+    """
+    if credentials is None:
+        return None
+    user = await get_current_user(credentials, db)
+    return user if user.is_superuser else None
 
 
 def check_asset_ownership(current_user: User, asset_owner: str) -> bool:

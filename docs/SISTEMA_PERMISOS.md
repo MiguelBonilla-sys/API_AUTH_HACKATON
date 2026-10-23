@@ -99,7 +99,7 @@ El sistema incluye 27 usuarios basados en la lista de propietarios reales:
 #### Administrador
 - **Email**: `admin@inventario.gov.co`
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: aleatoria por cuenta (ver `credentials/`, ignorado por git)
 - **Acceso**: Todos los activos
 
 #### Usuarios por Propietario (26 usuarios)
@@ -107,12 +107,12 @@ Ejemplos:
 - **Jefe Oficina de Control Interno**
   - Email: `jefe_oficina_de_control_interno@inventario.gov.co`
   - Username: `jefe_oficina_de_control_interno`
-  - Password: `password123`
+  - Password: aleatoria por cuenta (ver `credentials/`, ignorado por git)
 
 - **Subdirección Financiera y Administrativa**
   - Email: `subdireccion_financiera_y_administrativa@inventario.gov.co`
   - Username: `subdireccion_financiera_y_administrativa`
-  - Password: `password123`
+  - Password: aleatoria por cuenta (ver `credentials/`, ignorado por git)
 
 ### Generación de Credenciales
 ```bash
@@ -192,7 +192,7 @@ python scripts/create_users.py
 4. **Validación de propietario**: Impide cambiar propietario sin permisos
 
 ### Consideraciones de Producción
-1. **Cambiar contraseñas**: Todas las contraseñas por defecto (`admin123`, `password123`)
+1. **Cambiar contraseñas**: Las contraseñas se generan aleatorias por cuenta (`scripts/seed_passwords.py`); `SEED_ADMIN_PASSWORD` fija la del admin. Nunca se publican ni se comparten.
 2. **Rotación de JWT**: Implementar refresh tokens
 3. **Rate limiting**: Limitar intentos de login
 4. **Logging**: Registrar intentos de acceso no autorizado

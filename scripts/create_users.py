@@ -19,6 +19,7 @@ from sqlalchemy import select
 from src.config.database import get_db, engine
 from src.models.user import User
 from src.auth.jwt_utils import get_password_hash
+from seed_passwords import seed_password
 import sys
 import os
 from pathlib import Path
@@ -115,7 +116,7 @@ async def create_users():
     async with AsyncSession(engine) as session:
         try:
             # Create admin user first
-            admin_password = "admin123"  # You should change this in production
+            admin_password = seed_password("SEED_ADMIN_PASSWORD")
             admin_user = User(
                 email="admin@inventario.gov.co",
                 username="admin",
@@ -138,7 +139,7 @@ async def create_users():
                 "role": "ADMIN - Can see all assets"
             })
             
-            print(f"✓ Created admin user: admin@inventario.gov.co (password: {admin_password})")
+            print(f"✓ Created admin user: admin@inventario.gov.co")
             
             # Create users for each propietario
             created_count = 0
@@ -157,8 +158,8 @@ async def create_users():
                         print(f"⚠ User already exists: {username}")
                         continue
                     
-                    # Default password (same as username for simplicity)
-                    default_password = "password123"  # You should change this system in production
+                    # Random password per user, saved only to the git-ignored credentials file
+                    default_password = seed_password()
                     
                     user = User(
                         email=email,
@@ -195,8 +196,7 @@ async def create_users():
             
             print(f"\n🎉 Successfully created {created_count} users + 1 admin user!")
             print("\n📋 Quick reference:")
-            print("Admin: admin@inventario.gov.co / admin123")
-            print("Users: [username]@inventario.gov.co / password123")
+            print("Passwords: scripts/user_credentials.json (git-ignored, do not share)")
             
             return credentials_list
             

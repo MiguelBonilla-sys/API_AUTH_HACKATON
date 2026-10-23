@@ -1,0 +1,28 @@
+# Secret scanning for CI (gitleaks 8.28). The default rules miss plain-text
+# passwords for seeded accounts, which is what this repository leaked before.
+title = "api_auth_hackaton"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "hardcoded-account-password"
+description = "Literal password for a seeded or test account"
+regex = '''(?i)["']?password["']?\s*[:=]\s*["']([^"'\s{}<>]{6,})["']'''
+secretGroup = 1
+keywords = ["password"]
+
+[[rules.allowlists]]
+description = "Documentation placeholders"
+regexTarget = "secret"
+regexes = ['''^(tu_password|your_password|password|changeme)$''']
+
+[[rules]]
+id = "credentials-file"
+description = "Generated credentials file committed to the repository"
+path = '''(^|/)(user_credentials[^/]*\.(json|txt|csv)|credentials/[^/]+)$'''
+
+[[allowlists]]
+description = "README example: placeholder bearer token"
+regexTarget = "line"
+regexes = ['''Bearer YOUR_ACCESS_TOKEN''']

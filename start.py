@@ -22,15 +22,16 @@ def main():
     # Check if DATABASE_URL is set
     database_url = os.getenv("DATABASE_URL")
     if database_url:
-        print(f"✅ Database configured: {database_url[:50]}...")
+        print("✅ Database configured")
     else:
         print("⚠️  DATABASE_URL not configured - using mock database for healthcheck only")
     
     # Check critical environment variables
-    jwt_secret = os.getenv("JWT_SECRET_KEY")
-    if not jwt_secret:
-        print("⚠️  JWT_SECRET_KEY not configured - generating temporary key")
-        os.environ["JWT_SECRET_KEY"] = "temp-development-key-not-for-production"
+    # No fallback: src/auth/jwt_utils.py rejects missing, short or placeholder keys.
+    if not os.getenv("JWT_SECRET_KEY"):
+        print("❌ JWT_SECRET_KEY is not set. Generate one with:")
+        print('   python -c "import secrets; print(secrets.token_urlsafe(48))"')
+        sys.exit(1)
     
     try:
         # Start the server

@@ -7,7 +7,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://api_user:api_password@db:5432/api_auth_db
-      - JWT_SECRET_KEY=development-secret-key-change-in-production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env (32+ random characters)}
       - INVENTORY_API_BASE_URL=https://inventoryapp.usbtopia.usbbog.edu.co
       - DEBUG=true
     depends_on:

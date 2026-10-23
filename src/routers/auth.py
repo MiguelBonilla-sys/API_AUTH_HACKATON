@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,7 +10,8 @@ from src.auth import (
     create_access_token,
     create_refresh_token,
     verify_token,
-    get_current_user
+    get_current_user,
+    get_optional_superuser
 )
 from src.config.database import get_db
 from src.config.db_status import check_database_available, require_database
@@ -21,11 +24,19 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
     user_data: UserCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: Optional[User] = Depends(get_optional_superuser)
 ):
     """
-    Register a new user
+    Register a new user. Only an authenticated superuser can create superusers,
+    assign an asset owner or create inactive accounts.
     """
+    if admin is None and (user_data.is_superuser or user_data.dueno_de_activo or not user_data.is_active):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only an administrator can assign roles or asset owners"
+        )
+
     # Check database availability
     require_database()
     

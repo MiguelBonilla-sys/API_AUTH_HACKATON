@@ -86,7 +86,7 @@ curl -X POST "https://tu-app.railway.app/auth/register" \
   -d '{
     "username": "admin",
     "email": "admin@test.com", 
-    "password": "test123",
+    "password": "<contraseña-segura>",
     "full_name": "Admin User",
     "dueno_de_activo": "IT",
     "is_superuser": true

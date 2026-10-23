@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
+from seed_passwords import seed_password
+
 # Lista de propietarios de activos
 PROPIETARIOS_ACTIVOS = [
     "Jefe Oficina de Control Interno ",
@@ -84,7 +86,7 @@ def generate_credentials() -> Dict:
         "admin": {
             "email": "admin@inventario.gov.co",
             "username": "admin",
-            "password": "admin123",
+            "password": seed_password("SEED_ADMIN_PASSWORD"),
             "full_name": "Administrador Principal",
             "dueno_de_activo": None,
             "is_superuser": True,
@@ -98,7 +100,7 @@ def generate_credentials() -> Dict:
         try:
             username = create_username_from_dueno(dueno)
             email = create_email_from_username(username)
-            default_password = "password123"
+            default_password = seed_password()
             
             user_credential = {
                 "id": idx,
@@ -191,8 +193,7 @@ def main():
         print(f"   - Total: {len(credentials['users']) + 1} usuarios")
         
         print(f"\n🔑 Credenciales de acceso:")
-        print(f"   Admin: admin@inventario.gov.co / admin123")
-        print(f"   Usuarios: [username]@inventario.gov.co / password123")
+        print(f"   En credentials/ (ignorado por git); no compartirlas")
         
         print(f"\n⚠️  IMPORTANTE:")
         print(f"   - Cambiar contraseñas en producción")

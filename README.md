@@ -139,7 +139,7 @@ Crear un archivo `.env` en la raíz del proyecto:
 DATABASE_URL=postgresql://user:password@localhost:5432/api_auth
 
 # Autenticación JWT
-JWT_SECRET_KEY=tu_clave_secreta_muy_segura
+JWT_SECRET_KEY=  # obligatorio: python -c "import secrets; print(secrets.token_urlsafe(48))"
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
@@ -214,7 +214,7 @@ API_AUTH/
 
 ### Endpoints de Autenticación
 
-- `POST /auth/register`: Registrar nuevo usuario
+- `POST /auth/register`: Registrar nuevo usuario. Solo un superusuario autenticado puede crear administradores o asignar `dueno_de_activo`
 - `POST /auth/login`: Iniciar sesión y obtener tokens
 - `POST /auth/refresh`: Renovar token de acceso
 - `GET /auth/me`: Obtener información del usuario actual
@@ -255,7 +255,7 @@ curl -X GET "http://localhost:8000/inventario/" \
 DATABASE_URL=postgresql://username:password@hostname:port/database
 
 # JWT Configuration
-JWT_SECRET_KEY=your-super-secret-key
+JWT_SECRET_KEY=  # required, 32+ random characters
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
@@ -307,6 +307,14 @@ API_AUTH/
 - Validación de entrada con Pydantic
 - Headers CORS configurados
 - Manejo seguro de errores de API externa
+- `JWT_SECRET_KEY` obligatorio (32+ caracteres aleatorios): la app no arranca sin él ni con valores de ejemplo
+- Cuentas de prueba con contraseñas aleatorias por cuenta (`scripts/seed_passwords.py`); los archivos generados (`credentials/`, `scripts/user_credentials*.json`) están ignorados por git
+- CI (`.github/workflows/security.yml`): gitleaks con reglas propias (`.gitleaks.toml`) y pruebas de configuración (`pytest`)
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
 
 ## 📊 Monitoreo
 
