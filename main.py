@@ -89,10 +89,9 @@ async def debug_info():
     """Debug endpoint to check configuration"""
     from src.config.db_status import check_database_available
     
-    database_url = os.getenv("DATABASE_URL")
+    # Public endpoint: report what is configured, never any part of the values
     return {
         "database_configured": check_database_available(),
-        "database_url_prefix": database_url[:20] if database_url else None,
         "jwt_secret_configured": bool(os.getenv("JWT_SECRET_KEY")),
         "inventory_api_url": os.getenv("INVENTORY_API_BASE_URL"),
         "environment": os.getenv("ENVIRONMENT", "production")

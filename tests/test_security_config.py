@@ -105,3 +105,19 @@ def test_seed_passwords_are_random_per_account(monkeypatch):
     assert seed_password("SEED_ADMIN_PASSWORD") not in values
     monkeypatch.setenv("SEED_ADMIN_PASSWORD", "chosen-by-the-operator")
     assert seed_password("SEED_ADMIN_PASSWORD") == "chosen-by-the-operator"
+
+
+def test_debug_endpoint_reveals_no_part_of_the_database_url():
+    code = (
+        "from fastapi.testclient import TestClient\n"
+        "import main\n"
+        "body = TestClient(main.app).get('/debug').json()\n"
+        "assert 'database_url_prefix' not in body, body\n"
+        "assert 'operator' not in str(body), body\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=60,
+        env={**{k: v for k, v in os.environ.items() if k != "JWT_SECRET_KEY"},
+             "JWT_SECRET_KEY": VALID_KEY, "DATABASE_URL": "postgresql://operator:pw@db.invalid/x", "SENTRY_DSN": ""},
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
